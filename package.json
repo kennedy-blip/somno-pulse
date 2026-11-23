@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "test": "node --test tests/*.test.js",
-    "cap:sync": "node --require ./scripts/cap-tar-compat.cjs ./node_modules/@capacitor/cli/bin/capacitor sync android"
+    "cap:sync": "node --require ./scripts/cap-tar-compat.cjs ./node_modules/@capacitor/cli/bin/capacitor sync android && node ./scripts/strip-android-apk.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.3",
