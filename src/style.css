@@ -1,0 +1,252 @@
+/* SOMNO-PULSE — Liquid & Frosted UI. Pure CSS, zero TypeScript. */
+:root {
+  --bg: #03050C;
+  --ink: #E6EDF7;
+  --muted: #8B9BB4;
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-strong: rgba(255, 255, 255, 0.10);
+  --line: rgba(255, 255, 255, 0.14);
+  --accent: #06B6D4;
+  --accent2: #8B5CF6;
+  --danger: #EF4444;
+  --ok: #14B8A6;
+  --radius: 20px;
+  /* Gyroscope / cursor specular light position (written by App.vue springs). */
+  --spec-x: 50%;
+  --spec-y: 40%;
+}
+[data-theme="scotopic"] {
+  --bg: #0F0404;
+  --ink: #F5D9B8;
+  --muted: #C98A6B;
+  --glass: rgba(255, 120, 40, 0.07);
+  --glass-strong: rgba(255, 140, 50, 0.12);
+  --line: rgba(255, 160, 80, 0.22);
+  --accent: #F59E0B;
+  --accent2: #EF4444;
+}
+[data-theme="clinic"] {
+  --bg: #E8EEF4;
+  --ink: #0F172A;
+  --muted: #475569;
+  --glass: rgba(255, 255, 255, 0.80);
+  --glass-strong: rgba(255, 255, 255, 0.92);
+  --line: rgba(15, 23, 42, 0.12);
+  --accent: #0E7490;
+  --accent2: #6D28D9;
+}
+[data-theme="eco"] {
+  --bg: #04140F;
+  --ink: #D1FAE5;
+  --muted: #6EE7B7;
+  --glass: rgba(255, 255, 255, 0.05);
+  --glass-strong: rgba(255, 255, 255, 0.08);
+  --line: rgba(255, 255, 255, 0.10);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+#neural-canvas {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  z-index: 0; will-change: transform; opacity: 0.55;
+}
+[data-theme="clinic"] #neural-canvas { opacity: 0.25; }
+[data-theme="eco"] #neural-canvas { opacity: 0.18; }
+.noise-overlay {
+  position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0.035;
+}
+/* Cursor / gyroscope specular sweep across the glass panels. */
+.specular {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(520px circle at var(--spec-x) var(--spec-y),
+              rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.03) 42%, transparent 68%);
+  mix-blend-mode: screen;
+  transition: opacity 0.4s ease;
+}
+[data-theme="clinic"] .specular { opacity: 0.5; mix-blend-mode: multiply; }
+[data-theme="eco"] .specular { display: none; }
+/* Spring-driven respiratory chest-expansion ring. */
+.chest-wrap {
+  position: relative; height: 132px; display: grid; place-items: center; margin: 6px 0 12px;
+}
+.chest-ring {
+  position: absolute; border-radius: 50%;
+  border: 2px solid rgba(6, 182, 212, 0.55);
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.16), transparent 70%);
+  box-shadow: 0 0 34px rgba(6, 182, 212, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+.chest-core {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: 0 0 22px var(--accent);
+}
+.chest-label {
+  position: absolute; bottom: 0; font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.shell {
+  position: relative; z-index: 1;
+  max-width: 1180px; margin: 0 auto; padding: 18px 18px 120px;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.45s;
+}
+.shell.depth-push {
+  transform: scale(0.94);
+  border-radius: 28px;
+  overflow: hidden;
+}
+.topbar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  justify-content: space-between;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark {
+  width: 44px; height: 44px; border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: grid; place-items: center; font-size: 22px; color: #fff;
+  box-shadow: 0 8px 28px rgba(6, 182, 212, 0.35);
+}
+.brand h1 { margin: 0; font-size: 20px; letter-spacing: 0.12em; }
+.brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip, .btn {
+  border: 1px solid var(--line);
+  background: var(--glass);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: transform 0.18s, background 0.18s, border-color 0.18s;
+}
+.chip:hover, .btn:hover { transform: scale(1.015); border-color: var(--accent); }
+.chip:active, .btn:active { transform: scale(0.96); }
+.chip.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border-color: transparent; }
+.btn.primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; border: none; font-weight: 700;
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.35);
+}
+.btn.danger { border-color: var(--danger); color: var(--danger); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 18px 50px rgba(0, 0, 0, 0.28);
+  padding: 18px;
+  margin-top: 16px;
+  position: relative;
+}
+.glass::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(255, 255, 255, 0.06) 45%, rgba(34, 211, 238, 0.20));
+  opacity: 0.5;
+}
+.glass > * { position: relative; }
+.glass h2 { margin: 0 0 6px; font-size: 18px; }
+.glass h3 { margin: 14px 0 6px; font-size: 14px; }
+.muted { color: var(--muted); font-size: 13px; }
+.grid { display: grid; gap: 14px; }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.stat { text-align: center; padding: 12px; border-radius: 14px; background: var(--glass-strong); border: 1px solid var(--line); }
+.stat .num { font-size: 28px; font-weight: 800; }
+.stat .lbl { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; }
+.badge.ok { background: rgba(20, 184, 166, 0.18); color: var(--ok); border: 1px solid var(--ok); }
+.badge.warn { background: rgba(245, 158, 11, 0.16); color: #F59E0B; border: 1px solid #F59E0B; }
+.badge.danger { background: rgba(239, 68, 68, 0.16); color: var(--danger); border: 1px solid var(--danger); }
+.badge.info { background: rgba(59, 130, 246, 0.16); color: #3B82F6; border: 1px solid #3B82F6; }
+canvas.chart { width: 100%; height: 220px; display: block; border-radius: 12px; background: rgba(0, 0, 0, 0.22); }
+[data-theme="clinic"] canvas.chart { background: rgba(255, 255, 255, 0.7); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+input[type="time"], input[type="number"], input[type="password"], input[type="text"], select {
+  background: var(--glass-strong); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px;
+}
+input[type="checkbox"] { accent-color: var(--accent); width: 17px; height: 17px; }
+code { background: rgba(255, 255, 255, 0.08); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+[data-theme="clinic"] code { background: rgba(15, 23, 42, 0.08); }
+label { font-size: 13px; color: var(--muted); display: block; margin: 10px 0 4px; }
+.dock {
+  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%);
+  z-index: 40; padding: 8px;
+  background: var(--glass-strong); border: 1px solid var(--line);
+  border-radius: 999px; backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+  max-width: calc(100vw - 20px); overflow: visible;
+}
+.goo-def { position: absolute; width: 0; height: 0; pointer-events: none; }
+/* Liquid mercury metaball layer — blobs merge via the inline SVG contrast filter. */
+.dock .goo-layer {
+  position: absolute; inset: 8px; display: flex; gap: 6px;
+  filter: url(#somno-gooey); pointer-events: none;
+}
+.dock .goo-blob {
+  flex: 1 0 auto; min-width: 74px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  transition: background 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dock .goo-blob.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  transform: scale(1.07);
+}
+[data-theme="eco"] .dock .goo-layer { filter: none; }
+.dock-labels { position: relative; display: flex; gap: 6px; overflow-x: auto; }
+.dock button {
+  border: none; background: transparent; color: var(--muted);
+  padding: 10px 14px; border-radius: 999px; font-size: 13px; cursor: pointer; white-space: nowrap;
+  flex: 1 0 auto; min-width: 74px;
+  transition: color 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dock button.active { color: #fff; font-weight: 700; }
+.dock button:hover { color: var(--ink); }
+.dock button.active:hover { color: #fff; }
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(2, 4, 12, 0.55);
+  backdrop-filter: blur(6px);
+  display: grid; place-items: center; padding: 16px;
+}
+.modal {
+  width: min(720px, 100%); max-height: 88vh; overflow: auto;
+  background: var(--glass-strong); border: 1px solid var(--line);
+  border-radius: 24px; padding: 22px;
+  backdrop-filter: blur(26px); -webkit-backdrop-filter: blur(26px);
+}
+[data-theme="clinic"] .modal { background: rgba(255, 255, 255, 0.94); }
+pre.code {
+  background: rgba(0, 0, 0, 0.45); color: #A5F3FC;
+  padding: 14px; border-radius: 12px; overflow: auto; font-size: 12px; line-height: 1.5;
+  max-height: 300px;
+}
+[data-theme="clinic"] pre.code { background: #0F172A; }
+.phone-frame {
+  max-width: 420px; margin: 16px auto; border: 10px solid #111827;
+  border-radius: 36px; padding: 10px; background: #0B1220;
+}
+.phone-frame .glass { margin-top: 0; }
+.toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.switch { width: 48px; height: 26px; border-radius: 999px; background: rgba(255,255,255,0.15); border: 1px solid var(--line); cursor: pointer; position: relative; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+.switch.on { background: var(--accent); }
+.switch.on::after { transform: translateX(22px); }
+[data-theme="eco"] .glass, [data-theme="eco"] .modal, [data-theme="eco"] .dock { backdrop-filter: none; -webkit-backdrop-filter: none; }
+@media (max-width: 640px) {
+  .brand h1 { font-size: 16px; }
+  .glass { padding: 14px; }
+}
+
+/* The colorful shader is not suitable for the red bedside palette. */
+[data-theme="scotopic"] #neural-canvas { display: none; }

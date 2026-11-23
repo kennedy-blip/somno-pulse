@@ -1,0 +1,11 @@
+[package]
+name = "rust-somnology"
+version = "1.0.0"
+edition = "2021"
+description = "SOMNO-PULSE somnology crate: apnea AHI detection, snore formant ratio, bruxism tribology"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]

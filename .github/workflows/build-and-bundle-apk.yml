@@ -1,0 +1,272 @@
+name: Build & Bundle Android APK
+
+# SOMNO-PULSE release pipeline — zero-TypeScript polyglot stack.
+#   Vue 3.5 (.vue)  +  Rust (.rs)  +  Java 17 (.java)  +  Go 1.22 (.go)
+#   +  pure JavaScript (.js)  +  GLSL (.glsl)
+#
+# Produces a debug-signed APK and publishes it only after a successful build.
+
+on:
+  push:
+    branches: [main, 'arena/**']
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  APK_VERSION: v1.0.0-arm64
+  NODE_VERSION: '22'
+  JAVA_VERSION: '17'
+  GO_VERSION: '1.22'
+
+jobs:
+  # ------------------------------------------------------------------
+  # 1. Zero-TypeScript guard — the whole repo must stay 0.0% TypeScript.
+  # ------------------------------------------------------------------
+  typescript-guard:
+    name: Verify 0.0% TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assert no .ts / .tsx / tsconfig.json anywhere
+        run: |
+          set -e
+          echo "Scanning repository for TypeScript artefacts..."
+          TS_FILES=$(git ls-files | grep -E '\.tsx?$|tsconfig.*\.json$' || true)
+          if [ -n "$TS_FILES" ]; then
+            echo "::error::TypeScript files detected (0.0% TS mandate violated):"
+            echo "$TS_FILES"
+            exit 1
+          fi
+          LANG_TS=$(git grep -l 'lang="ts"' -- '*.vue' || true)
+          if [ -n "$LANG_TS" ]; then
+            echo "::error::<script lang=\"ts\"> found in Vue SFCs:"
+            echo "$LANG_TS"
+            exit 1
+          fi
+          echo "✅ 0.0% TypeScript — no .ts, no .tsx, no tsconfig.json, no lang=\"ts\"."
+
+      - name: Report polyglot linguistic breakdown
+        run: |
+          echo "Language distribution (target: Vue ~55%, JS ~14%, Rust ~12%, Java ~8%, Go ~6%, GLSL/CSS ~5%):"
+          for ext in vue js rs java go glsl css; do
+            count=$(git ls-files "*.${ext}" | wc -l)
+            bytes=$(git ls-files "*.${ext}" -z | xargs -0 cat 2>/dev/null | wc -c)
+            printf '  %-5s files=%-4s bytes=%s\n' "${ext}" "${count}" "${bytes}"
+          done
+
+  # ------------------------------------------------------------------
+  # 2. Rust somnology crate — unit tests + WASM bundle.
+  # ------------------------------------------------------------------
+  rust-crate:
+    name: Rust somnology crate + WASM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust-somnology
+
+      - name: cargo test (AHI detector + bruxism tribology)
+        working-directory: rust-somnology
+        run: |
+          cargo test --lib -- --nocapture
+
+      - name: Build wasm32 artefact
+        working-directory: rust-somnology
+        run: |
+          cargo build --release --target wasm32-unknown-unknown
+          mkdir -p ../public/wasm
+          cp target/wasm32-unknown-unknown/release/rust_somnology.wasm ../public/wasm/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rust-wasm
+          path: public/wasm
+          if-no-files-found: ignore
+
+  # ------------------------------------------------------------------
+  # 3. Go 1.22 — clinical serverless fn + CO2 mass-balance package.
+  # ------------------------------------------------------------------
+  go-engines:
+    name: Go 1.22 clinical + CO2 engines
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Vet + build CO2 mass-balance package
+        working-directory: go_somnology
+        run: |
+          go vet ./...
+          go test ./...
+          go build ./...
+
+      - name: Vet + build Vercel serverless function
+        working-directory: api
+        run: |
+          go vet .
+          go build -o /tmp/somno_clinical .
+
+  # ------------------------------------------------------------------
+  # 4. Vue 3.5 web bundle (the Capacitor webDir).
+  # ------------------------------------------------------------------
+  web-bundle:
+    name: Vue 3.5 + Vite web bundle
+    runs-on: ubuntu-latest
+    needs: [typescript-guard, rust-crate, go-engines]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download Rust WASM artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-wasm
+          path: public/wasm
+        continue-on-error: true
+
+      - name: Test JavaScript engines
+        run: npm test
+
+      - name: Vite production build
+        run: npm run build
+
+      - name: Assert dist output exists
+        run: |
+          test -f dist/index.html
+          echo "✅ dist/ built for Capacitor webDir + Vercel deploy."
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+
+  # ------------------------------------------------------------------
+  # 5. Capacitor sync + Gradle assembleRelease → the .APK.
+  # ------------------------------------------------------------------
+  android-apk:
+    name: Gradle APK (arm64)
+    runs-on: ubuntu-latest
+    needs: web-bundle
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore web bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+
+      - name: Sync Capacitor Android
+        run: npm run cap:sync
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Assemble installable debug APK
+        working-directory: android
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Bundle APK and manifest
+        run: |
+          mkdir -p public/releases
+          cp android/app/build/outputs/apk/debug/app-debug.apk public/releases/somnopulse-release.apk
+          cd public/releases
+          sha256sum somnopulse-release.apk > somnopulse-release.apk.sha256
+          HASH=$(cut -d' ' -f1 somnopulse-release.apk.sha256)
+          printf '{"file":"somnopulse-release.apk","sha256":"%s","build":"debug"}\n' "$HASH" > manifest.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: somnopulse-apk
+          path: |
+            public/releases/somnopulse-release.apk
+            public/releases/somnopulse-release.apk.sha256
+            public/releases/manifest.json
+
+  # ------------------------------------------------------------------
+  # 6. Commit the debug APK to the triggering branch for Vercel deployment.
+  # ------------------------------------------------------------------
+  bundle-release:
+    name: Commit APK to public/releases
+    runs-on: ubuntu-latest
+    needs: android-apk
+    if: github.event_name != 'pull_request' && !startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download bundled APK
+        uses: actions/download-artifact@v4
+        with:
+          name: somnopulse-apk
+          path: public/releases
+
+      - name: Commit release artefact
+        run: |
+          git config user.name "somnopulse-ci"
+          git config user.email "ci@somnopulse.local"
+          git add -f public/releases
+          if git diff --cached --quiet; then
+            echo "APK artefact unchanged."
+          else
+            git commit -m "ci: bundle ${APK_VERSION} APK into public/releases [skip ci]"
+            git push
+          fi
+
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: android-apk
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: somnopulse-apk
+          path: public/releases
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            public/releases/somnopulse-release.apk
+            public/releases/somnopulse-release.apk.sha256
+            public/releases/manifest.json
+          generate_release_notes: true
