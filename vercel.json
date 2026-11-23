@@ -1,0 +1,8 @@
+{
+  "headers": [
+    {
+      "source": "/releases/somnopulse-release.apk",
+      "headers": [{ "key": "Content-Disposition", "value": "attachment; filename=SomnoPulse-SleepPSG-v1.0.0.apk" }]
+    }
+  ]
+}

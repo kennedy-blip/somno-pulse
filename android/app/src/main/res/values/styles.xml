@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Circadian Obsidian default: deep midnight-cosmos bedside glass. -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">#06B6D4</item>
+        <item name="colorPrimaryDark">#03050C</item>
+        <item name="colorAccent">#8B5CF6</item>
+        <item name="android:windowBackground">#03050C</item>
+        <item name="android:statusBarColor">#03050C</item>
+        <item name="android:navigationBarColor">#03050C</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="AppTheme">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="AppTheme.NoActionBarLaunch" parent="AppTheme.NoActionBar">
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>

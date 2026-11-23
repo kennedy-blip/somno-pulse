@@ -1,0 +1,20 @@
+{
+  "appId": "com.somnopulse.sleep",
+  "appName": "SomnoPulse",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "MattressActigraphyPlugin": {
+      "samplingRateHz": 50,
+      "thresholdMG": 5
+    },
+    "NocturnalAudioMonitorPlugin": {
+      "sampleRateHz": 16000,
+      "echoCancellation": false,
+      "noiseSuppression": false,
+      "autoGainControl": false
+    }
+  }
+}
