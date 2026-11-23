@@ -71,3 +71,12 @@ test('microphone granted after stop is immediately released', async () => {
     else delete globalThis.navigator;
   }
 });
+
+test('microphone diagnostics distinguish actual settings from unknown settings', async () => {
+  const { describeAudioSettings } = await import('../src/engines/sensorDiagnostics.js');
+  const message = describeAudioSettings({ echoCancellation: false, noiseSuppression: true, sampleRate: 48000 });
+  assert.match(message, /echo cancellation: off/);
+  assert.match(message, /noise suppression: on/);
+  assert.match(message, /automatic gain control: not reported/);
+  assert.match(message, /48000 Hz/);
+});

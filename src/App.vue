@@ -51,6 +51,7 @@
           <button class="btn" @click="stopEngine">⏹ Stop</button>
           <span class="muted">{{ engineMsg }}</span>
         </div>
+        <p v-if="audioSettings" class="muted" role="status">{{ audioSettings }}</p>
         <h3>Synthesized Nocturnal Simulators</h3>
         <div class="row">
           <button v-for="s in SIMULATORS" :key="s.id" class="chip" :class="{ active: simId === s.id }" @click="startSim(s.id)">
@@ -233,6 +234,7 @@ import ClinicalScorer from './components/ClinicalScorer.vue';
 import EntrainmentSynth from './components/EntrainmentSynth.vue';
 import PolyglotVault from './components/PolyglotVault.vue';
 import { AudioEngine, SIMULATORS } from './engines/audioEngine.js';
+import { describeAudioSettings } from './engines/sensorDiagnostics.js';
 import { detectApneaEvents, computeAhi, classifySnoreSite, classifyBruxism } from './engines/rustSomnoBridge.js';
 import { simulateCo2, prescribeVentilation, thermostatForTog } from './engines/co2Engine.js';
 import { saveReport, listReports, syncQueueLength, flushSyncQueue, vaultSetPin, vaultCheckPin } from './db/somnoDb.js';
@@ -306,6 +308,7 @@ const chestSize = ref('64%');
 
 const engine = new AudioEngine();
 const engineMsg = ref('Idle');
+const audioSettings = ref('');
 const engineStatus = ref('SIMULATOR READY');
 const simId = ref(null);
 const simMeta = ref('Pick a simulator or go live.');
@@ -381,6 +384,7 @@ watch([showApk, showPriv, showReport], ([a, b, c]) => { depthPush.value = a || b
 
 async function startLive() {
   const request = ++audioRequest;
+  audioSettings.value = '';
   engineMsg.value = 'Requesting microphone…';
   engineStatus.value = 'REQUESTING MICROPHONE';
   simId.value = null;
@@ -389,6 +393,15 @@ async function startLive() {
     if (request !== audioRequest || !analyser) return;
     engineMsg.value = 'Microphone active. Live clinical measurements are not available.';
     engineStatus.value = 'WEB MICROPHONE ACTIVE';
+    const track = engine.stream?.getAudioTracks()[0];
+    audioSettings.value = describeAudioSettings(track?.getSettings?.());
+    track?.addEventListener('ended', () => {
+      if (request !== audioRequest) return;
+      engine.stopAll();
+      audioSettings.value = '';
+      engineStatus.value = 'SIMULATOR READY';
+      engineMsg.value = 'Microphone stream ended or permission was revoked.';
+    }, { once: true });
   } catch (e) {
     if (request !== audioRequest) return;
     engineMsg.value = 'Microphone unavailable: ' + e.message;
@@ -398,6 +411,7 @@ async function startLive() {
 async function startSim(id) {
   const request = ++audioRequest;
   simId.value = null;
+  audioSettings.value = '';
   engineMsg.value = 'Starting simulator…';
   engineStatus.value = 'STARTING SIMULATOR';
   try {
@@ -416,6 +430,7 @@ async function startSim(id) {
 function stopEngine() {
   audioRequest++;
   engine.stopAll();
+  audioSettings.value = '';
   simId.value = null;
   simMeta.value = 'Pick a simulator or go live.';
   engineMsg.value = 'Stopped.';
