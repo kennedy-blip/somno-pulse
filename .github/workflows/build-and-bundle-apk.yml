@@ -182,7 +182,12 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
-      - uses: android-actions/setup-android@v3
+      - name: Verify hosted Android SDK
+        shell: bash
+        run: |
+          test -n "${ANDROID_HOME:-}" || { echo "::error::ANDROID_HOME not available on this runner"; exit 1; }
+          test -d "$ANDROID_HOME/platforms/android-34" || { echo "::error::Android SDK platform 34 is missing"; exit 1; }
+          echo "Using Android SDK at $ANDROID_HOME"
 
       - name: Install dependencies
         run: npm ci
